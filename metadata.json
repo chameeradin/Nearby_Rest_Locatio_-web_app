@@ -1,0 +1,6 @@
+{
+  "name": "Nearby Rest Locations",
+  "description": "Real-time location-aware discovery and in-app booking for nearby hotels, restaurants, cabanas, and cafes powered by Google Maps Platform and Booking.com API. Developed by Waves IT.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

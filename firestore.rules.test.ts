@@ -1,0 +1,96 @@
+/**
+ * Phase 0 Security Rules Verification Spec — Dirty Dozen Attack Matrix
+ * Run with @firebase/rules-unit-testing against local Firestore Emulator when available.
+ */
+export const DIRTY_DOZEN_PAYLOADS = [
+  {
+    name: '1. Unauthenticated read of /users/user1',
+    auth: null,
+    op: 'get',
+    path: 'users/user1',
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '2. Unverified email user creating /users/user1',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: false },
+    op: 'create',
+    path: 'users/user1',
+    payload: { uid: 'user1', email: 'u1@example.com', displayName: 'U1', role: 'user', status: 'active', notificationsEnabled: true, promoAlertsEnabled: true },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '3. Self-privilege escalation on create (role: admin)',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'create',
+    path: 'users/user1',
+    payload: { uid: 'user1', email: 'u1@example.com', displayName: 'U1', role: 'admin', status: 'active', notificationsEnabled: true, promoAlertsEnabled: true },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '4. Self-privilege escalation on update (role: admin)',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'update',
+    path: 'users/user1',
+    payload: { role: 'admin' },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '5. Cross-user PII read (/users/user2 by user1)',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'get',
+    path: 'users/user2',
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '6. Blanket /users list scraping by non-admin',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'list',
+    path: 'users',
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '7. Booking identity spoofing (userId != auth.uid)',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'create',
+    path: 'bookings/b1',
+    payload: { id: 'b1', userId: 'user2', userEmail: 'u2@example.com', userName: 'U2', placeId: 'p1', placeName: 'Hotel', placeAddress: 'Main St', category: 'hotel', checkInDate: '2026-12-01', guests: 2, roomOrServiceType: 'Deluxe Room', paymentMethod: 'pay_at_property', bookingSource: 'in_app_request', status: 'pending' },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '8. Shadow key injection on /bookings/b1',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'create',
+    path: 'bookings/b1',
+    payload: { id: 'b1', userId: 'user1', userEmail: 'u1@example.com', userName: 'U1', placeId: 'p1', placeName: 'Hotel', placeAddress: 'Main St', category: 'hotel', checkInDate: '2026-12-01', guests: 2, roomOrServiceType: 'Deluxe Room', paymentMethod: 'pay_at_property', bookingSource: 'in_app_request', status: 'pending', isFree: true },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '9. Terminal state bypass (reopening cancelled booking)',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'update',
+    path: 'bookings/b1_cancelled',
+    payload: { status: 'confirmed' },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '10. Unfiltered /bookings list query',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'list',
+    path: 'bookings',
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '11. Oversized 2KB ID poisoning',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'create',
+    path: `searchHistory/${'a'.repeat(500)}`,
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '12. Non-admin reading /activityLogs or writing /promotions',
+    auth: { uid: 'user1', email: 'u1@example.com', email_verified: true },
+    op: 'list',
+    path: 'activityLogs',
+    expected: 'PERMISSION_DENIED',
+  },
+];

@@ -1,0 +1,242 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'chameeragamage2020@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Validation Helpers
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role', 'status', 'notificationsEnabled', 'promoAlertsEnabled', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'phone', 'role', 'status', 'notificationsEnabled', 'promoAlertsEnabled', 'preferredCategory', 'searchRadiusMeters', 'createdAt', 'updatedAt', 'lastLoginAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024))
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 40))
+        && data.role in ['user', 'admin']
+        && data.status in ['active', 'suspended']
+        && data.notificationsEnabled is bool
+        && data.promoAlertsEnabled is bool
+        && (!('preferredCategory' in data) || data.preferredCategory in ['all', 'hotel', 'restaurant', 'cabana', 'cafe'])
+        && (!('searchRadiusMeters' in data) || (data.searchRadiusMeters is number && data.searchRadiusMeters >= 500 && data.searchRadiusMeters <= 50000))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && (!('lastLoginAt' in data) || data.lastLoginAt is timestamp);
+    }
+
+    function isValidAdminMarker(data) {
+      return data.keys().hasAll(['uid', 'email', 'grantedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'grantedAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.grantedAt is timestamp;
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll(['id', 'userId', 'userEmail', 'userName', 'placeId', 'placeName', 'placeAddress', 'category', 'checkInDate', 'guests', 'roomOrServiceType', 'paymentMethod', 'bookingSource', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'userEmail', 'userName', 'placeId', 'placeName', 'placeAddress', 'placePhone', 'category', 'checkInDate', 'checkOutDate', 'timeSlot', 'guests', 'roomOrServiceType', 'totalAmount', 'currency', 'paymentMethod', 'bookingSource', 'status', 'notes', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.userId)
+        && data.userEmail is string && data.userEmail.size() >= 3 && data.userEmail.size() <= 254
+        && data.userName is string && data.userName.size() >= 1 && data.userName.size() <= 120
+        && data.placeId is string && data.placeId.size() >= 1 && data.placeId.size() <= 256
+        && data.placeName is string && data.placeName.size() >= 1 && data.placeName.size() <= 200
+        && data.placeAddress is string && data.placeAddress.size() >= 1 && data.placeAddress.size() <= 400
+        && (!('placePhone' in data) || (data.placePhone is string && data.placePhone.size() <= 64))
+        && data.category in ['hotel', 'restaurant', 'cabana', 'cafe']
+        && data.checkInDate is string && data.checkInDate.size() >= 4 && data.checkInDate.size() <= 32
+        && (!('checkOutDate' in data) || (data.checkOutDate is string && data.checkOutDate.size() <= 32))
+        && (!('timeSlot' in data) || (data.timeSlot is string && data.timeSlot.size() <= 32))
+        && data.guests is number && data.guests >= 1 && data.guests <= 50
+        && data.roomOrServiceType is string && data.roomOrServiceType.size() >= 1 && data.roomOrServiceType.size() <= 160
+        && (!('totalAmount' in data) || (data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 1000000))
+        && (!('currency' in data) || (data.currency is string && data.currency.size() <= 10))
+        && data.paymentMethod in ['booking_com_checkout', 'pay_at_property', 'card_reservation']
+        && data.bookingSource in ['booking_com_api', 'in_app_request']
+        && data.status in ['pending', 'confirmed', 'completed', 'cancelled']
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 500))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSearchHistory(data) {
+      return data.keys().hasAll(['id', 'userId', 'query', 'locationLabel', 'lat', 'lng', 'category', 'mode', 'resultCount', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'query', 'locationLabel', 'lat', 'lng', 'category', 'mode', 'resultCount', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.userId)
+        && data.query is string && data.query.size() <= 200
+        && data.locationLabel is string && data.locationLabel.size() >= 1 && data.locationLabel.size() <= 200
+        && data.lat is number && data.lat >= -90 && data.lat <= 90
+        && data.lng is number && data.lng >= -180 && data.lng <= 180
+        && data.category in ['all', 'hotel', 'restaurant', 'cabana', 'cafe']
+        && data.mode in ['gps', 'manual']
+        && data.resultCount is number && data.resultCount >= 0 && data.resultCount <= 100
+        && data.createdAt is timestamp;
+    }
+
+    function isValidActivityLog(data) {
+      return data.keys().hasAll(['id', 'userId', 'userEmail', 'action', 'details', 'category', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'userEmail', 'action', 'details', 'category', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.userId)
+        && data.userEmail is string && data.userEmail.size() >= 3 && data.userEmail.size() <= 254
+        && data.action is string && data.action.size() >= 1 && data.action.size() <= 100
+        && data.details is string && data.details.size() >= 1 && data.details.size() <= 400
+        && data.category in ['auth', 'search', 'booking', 'admin', 'notification']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidPromotion(data) {
+      return data.keys().hasAll(['id', 'title', 'description', 'category', 'discountLabel', 'validUntil', 'active', 'createdBy', 'createdAt'])
+        && data.keys().hasOnly(['id', 'title', 'description', 'category', 'discountLabel', 'validUntil', 'active', 'createdBy', 'createdAt'])
+        && isValidId(data.id)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 140
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 400
+        && data.category in ['all', 'hotel', 'restaurant', 'cabana', 'cafe']
+        && data.discountLabel is string && data.discountLabel.size() >= 1 && data.discountLabel.size() <= 40
+        && data.validUntil is string && data.validUntil.size() >= 4 && data.validUntil.size() <= 32
+        && data.active is bool
+        && isValidId(data.createdBy)
+        && data.createdAt is timestamp;
+    }
+
+    // /users/{userId}
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && incoming().status == 'active'
+        && (incoming().role == 'user' || (incoming().role == 'admin' && isAdmin()));
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'status', 'displayName', 'phone', 'notificationsEnabled', 'promoAlertsEnabled', 'preferredCategory', 'searchRadiusMeters', 'updatedAt', 'lastLoginAt']))
+          ||
+          (isOwner(userId)
+            && incoming().role == existing().role
+            && incoming().status == existing().status
+            && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'phone', 'notificationsEnabled', 'promoAlertsEnabled', 'preferredCategory', 'searchRadiusMeters', 'updatedAt', 'lastLoginAt']))
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // /admins/{userId}
+    match /admins/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && isValidId(userId) && isValidAdminMarker(incoming());
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // /bookings/{bookingId}
+    match /bookings/{bookingId} {
+      allow get: if isValidId(bookingId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isVerifiedUser()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && incoming().id == bookingId
+        && incoming().userId == request.auth.uid
+        && incoming().status in ['pending', 'confirmed']
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && incoming().id == existing().id
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'notes', 'updatedAt']))
+          ||
+          (isOwner(existing().userId)
+            && existing().status in ['pending', 'confirmed']
+            && incoming().status == 'cancelled'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'notes', 'updatedAt']))
+        );
+      allow delete: if isAdmin() && isValidId(bookingId);
+    }
+
+    // /searchHistory/{historyId}
+    match /searchHistory/{historyId} {
+      allow get: if isValidId(historyId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isVerifiedUser()
+        && isValidId(historyId)
+        && isValidSearchHistory(incoming())
+        && incoming().id == historyId
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow delete: if isValidId(historyId) && (isOwner(existing().userId) || isAdmin());
+    }
+
+    // /activityLogs/{logId}
+    match /activityLogs/{logId} {
+      allow get: if isValidId(logId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isVerifiedUser()
+        && isValidId(logId)
+        && isValidActivityLog(incoming())
+        && incoming().id == logId
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // /promotions/{promoId}
+    match /promotions/{promoId} {
+      allow get: if isValidId(promoId) && (existing().active == true || isAdmin());
+      allow list: if resource.data.active == true || isAdmin();
+      allow create, update: if isAdmin()
+        && isValidId(promoId)
+        && isValidPromotion(incoming())
+        && incoming().id == promoId;
+      allow delete: if isAdmin() && isValidId(promoId);
+    }
+  }
+}

@@ -1,0 +1,342 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile, role, notification preferences, and exploration defaults.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "admin"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended"]
+        },
+        "notificationsEnabled": {
+          "type": "boolean"
+        },
+        "promoAlertsEnabled": {
+          "type": "boolean"
+        },
+        "preferredCategory": {
+          "type": "string",
+          "enum": ["all", "hotel", "restaurant", "cabana", "cafe"]
+        },
+        "searchRadiusMeters": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "role", "status", "notificationsEnabled", "promoAlertsEnabled", "createdAt", "updatedAt"]
+    },
+    "AdminMarker": {
+      "title": "AdminMarker",
+      "description": "Explicit administrator privilege document.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "grantedAt"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "In-app or Booking.com API reservation record for hotels, cabanas, restaurants, or cafes.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "userName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "placeId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "placeName": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "placeAddress": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "placePhone": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "category": {
+          "type": "string",
+          "enum": ["hotel", "restaurant", "cabana", "cafe"]
+        },
+        "checkInDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "checkOutDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "timeSlot": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "guests": {
+          "type": "number"
+        },
+        "roomOrServiceType": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["booking_com_checkout", "pay_at_property", "card_reservation"]
+        },
+        "bookingSource": {
+          "type": "string",
+          "enum": ["booking_com_api", "in_app_request"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "completed", "cancelled"]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "userEmail", "userName", "placeId", "placeName", "placeAddress", "category", "checkInDate", "guests", "roomOrServiceType", "paymentMethod", "bookingSource", "status", "createdAt", "updatedAt"]
+    },
+    "SearchHistoryEntry": {
+      "title": "SearchHistoryEntry",
+      "description": "User search history for GPS or manual town explorations.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "locationLabel": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["all", "hotel", "restaurant", "cabana", "cafe"]
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["gps", "manual"]
+        },
+        "resultCount": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "query", "locationLabel", "lat", "lng", "category", "mode", "resultCount", "createdAt"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Immutable activity audit log for admin monitoring.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "action": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "details": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "category": {
+          "type": "string",
+          "enum": ["auth", "search", "booking", "admin", "notification"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "userEmail", "action", "details", "category", "createdAt"]
+    },
+    "Promotion": {
+      "title": "Promotion",
+      "description": "Promotional offers delivered via push notifications.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "category": {
+          "type": "string",
+          "enum": ["all", "hotel", "restaurant", "cabana", "cafe"]
+        },
+        "discountLabel": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "validUntil": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "createdBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "title", "description", "category", "discountLabel", "validUntil", "active", "createdBy", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profiles, roles, and notification preferences."
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminMarker" },
+      "description": "Explicit administrator privilege markers."
+    },
+    "/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "User reservations across hotels, restaurants, cabanas, and cafes."
+    },
+    "/searchHistory/{historyId}": {
+      "schema": { "$ref": "#/entities/SearchHistoryEntry" },
+      "description": "User location search history."
+    },
+    "/activityLogs/{logId}": {
+      "schema": { "$ref": "#/entities/ActivityLog" },
+      "description": "Audit logs of user actions for admin review."
+    },
+    "/promotions/{promoId}": {
+      "schema": { "$ref": "#/entities/Promotion" },
+      "description": "Promotional offers for push notification alerts."
+    }
+  }
+}
